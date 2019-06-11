@@ -11,8 +11,7 @@
           <li v-for="(post,idx) in posts" :key="idx">
             <button @click="refreshPostItem(post)">refreshItem</button>
             <span class="id var">{{post.id}}</span>
-            <span class="title var">{{post.title}}</span>
-            <span class="author var">{{post.author}}</span>
+            <span :class="key" class="var" v-for="(_, key) in form.newPost" :key="key">{{post[key]}}</span>
             <button @click="selectEdit(post)">Edit</button>
             <button @click="deletePost_flow(post)">delete</button>
           </li>
@@ -131,8 +130,13 @@ export default {
       await API.posts.create(post);
     },
     selectEdit(post) {
-      const { id, title, author } = post;
-      this.form.updatePost = { id, title, author };
+      const newPayload = {
+        id: post.id
+      };
+      Object.keys(defaultPostInput).forEach(key => {
+        newPayload[key] = post[key];
+      });
+      this.form.updatePost = newPayload;
     },
     async deletePost(post) {
       await API.posts.delete(post.id);
