@@ -83,7 +83,8 @@ const flowGenerator = flowItems =>
 
 const defaultPostInput = {
   title: "",
-  author: ""
+  author: "",
+  content: ""
 };
 
 export default {
