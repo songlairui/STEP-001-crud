@@ -21,7 +21,9 @@
           <h4>Update a Post</h4>
           <input type="text" v-model="form.updatePost.title" placeholder="title">
           <input type="text" v-model="form.updatePost.author" placeholder="author">
+          <button @click="patchPost_flow()">Patch</button>
           <button @click="updatePost_flow()">Update</button>
+          <button @click="abortUpdate()">Abort</button>
         </div>
         <div class="create-form">
           <h4>Create a Post</h4>
@@ -55,8 +57,9 @@ import API from "@/api";
 
 const flows = {
   post: {
-    create: ["createPost", "refreshPost"],
-    update: ["updatePost", "refreshPostItem"],
+    create: ["createPost", "refreshPost", "abortPost"],
+    update: ["updatePost", "refreshPostItem", "abortUpdate"],
+    patch: ["patchPost", "refreshPostItem", "abortUpdate"],
     delete: ["deletePost", "deleteLocal"]
   }
 };
@@ -89,14 +92,10 @@ export default {
           author: ""
         },
         updatePost: {
+          _origin: {}, // TODO
           id: "",
           title: "",
           author: ""
-        }
-      },
-      test: {
-        a() {
-          console.info("test", this);
         }
       }
     };
@@ -104,6 +103,7 @@ export default {
   computed: {
     createPost_flow: flowGenerator(flows.post.create),
     updatePost_flow: flowGenerator(flows.post.update),
+    patchPost_flow: flowGenerator(flows.post.patch),
     deletePost_flow: flowGenerator(flows.post.delete)
   },
   methods: {
@@ -116,13 +116,15 @@ export default {
     async refreshProfile() {
       this.profile = await API.profile.retrieve();
     },
-    async createPost() {
-      const post = { ...this.form.newPost };
-      await API.posts.create(post);
+    abortPost() {
       this.form.newPost = {
         title: "",
         author: ""
       };
+    },
+    async createPost() {
+      const post = { ...this.form.newPost };
+      await API.posts.create(post);
     },
     selectEdit(post) {
       const { id, title, author } = post;
@@ -139,15 +141,28 @@ export default {
       }
       return false;
     },
-    async updatePost() {
-      // 全量更新
-      const { id, ...post } = this.form.updatePost;
-      await API.posts.update(id, post);
+    abortUpdate() {
       this.form.updatePost = {
         id: "",
         title: "",
         author: ""
       };
+    },
+    async patchPost() {
+      // 全量更新
+      const { id, ...post } = this.form.updatePost;
+      Object.entries(post).forEach(([key, value]) => {
+        if (value === undefined || value.trim() === "") {
+          delete post[key];
+        }
+      });
+      await API.posts.patch(id, post);
+      return { id, ...post };
+    },
+    async updatePost() {
+      // 全量更新
+      const { id, ...post } = this.form.updatePost;
+      await API.posts.update(id, post);
       return { id, ...post };
     },
     async refreshPostItem(post) {
@@ -180,7 +195,6 @@ export default {
     }
   },
   async created() {
-    this.test.a();
     await this.init();
   }
 };
