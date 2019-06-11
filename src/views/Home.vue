@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <h1 @click="test.a()">Welcome to Your Vue.js App</h1>
+    <h1>Welcome to Your Vue.js App</h1>
     <div class="row">
       <div class="col">
         <h3>
