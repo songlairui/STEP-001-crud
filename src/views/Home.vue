@@ -14,20 +14,20 @@
             <span class="title var">{{post.title}}</span>
             <span class="author var">{{post.author}}</span>
             <button @click="selectEdit(post)">Edit</button>
-            <button @click="deletePost(post)">delete</button>
+            <button @click="deletePost_flow(post)">delete</button>
           </li>
         </ul>
         <div class="update-form" v-if="form.updatePost.id">
           <h4>Update a Post</h4>
           <input type="text" v-model="form.updatePost.title" placeholder="title">
           <input type="text" v-model="form.updatePost.author" placeholder="author">
-          <button @click="updatePost()">Update</button>
+          <button @click="updatePost_flow()">Update</button>
         </div>
         <div class="create-form">
           <h4>Create a Post</h4>
           <input type="text" v-model="form.newPost.title" placeholder="title">
           <input type="text" v-model="form.newPost.author" placeholder="author">
-          <button @click="createPost$F()">Create</button>
+          <button @click="createPost_flow()">Create</button>
         </div>
       </div>
       <div class="col">
@@ -56,10 +56,22 @@ import API from "@/api";
 const flows = {
   post: {
     create: ["createPost", "refreshPost"],
-    update: ["updatePost", "updatePostItem"],
+    update: ["updatePost", "refreshPostItem"],
     delete: ["deletePost", "deleteLocal"]
   }
 };
+
+const flowGenerator = flowItems =>
+  function(data) {
+    return () =>
+      flowItems.reduce(
+        (result, propName) =>
+          result.then(resolved =>
+            this[propName](resolved === undefined ? data : resolved)
+          ),
+        Promise.resolve()
+      );
+  };
 
 export default {
   name: "home",
@@ -90,13 +102,9 @@ export default {
     };
   },
   computed: {
-    createPost$F() {
-      return () =>
-        flows.post.create.reduce(
-          (result, propName) => result.then(() => this[propName]()),
-          Promise.resolve()
-        );
-    }
+    createPost_flow: flowGenerator(flows.post.create),
+    updatePost_flow: flowGenerator(flows.post.update),
+    deletePost_flow: flowGenerator(flows.post.delete)
   },
   methods: {
     async refreshPost() {
@@ -116,19 +124,12 @@ export default {
         author: ""
       };
     },
-    async updatePost() {
-      // 全量更新
-      const { id, ...post } = this.form.updatePost;
-      await API.posts.update(id, post);
-      this.form.updatePost = {
-        id: "",
-        title: "",
-        author: ""
-      };
-    },
     selectEdit(post) {
       const { id, title, author } = post;
       this.form.updatePost = { id, title, author };
+    },
+    async deletePost(post) {
+      await API.posts.delete(post.id);
     },
     deletePostLocal(post) {
       const idx = this.posts.findIndex(item => item.id === post.id);
@@ -138,19 +139,30 @@ export default {
       }
       return false;
     },
-    async deletePost(post) {
-      await API.posts.delete(post.id);
+    async updatePost() {
+      // 全量更新
+      const { id, ...post } = this.form.updatePost;
+      await API.posts.update(id, post);
+      this.form.updatePost = {
+        id: "",
+        title: "",
+        author: ""
+      };
+      return { id, ...post };
     },
     async refreshPostItem(post) {
+      const idx = this.posts.findIndex(item => item.id === post.id);
+      if (idx === -1) {
+        console.error(" no achieveable");
+        return;
+      }
       try {
         const data = await API.posts.retrieve(post.id);
-        console.info("data", data);
+        this.posts.splice(idx, 1, { ...data });
       } catch (error) {
         if ((error.response && error.response.status) === 404) {
           const idx = this.posts.findIndex(item => item.id === post.id);
-          if (idx > -1) {
-            this.posts.splice(idx, 1);
-          }
+          this.posts.splice(idx, 1);
         } else console.dir(error);
       }
     },
