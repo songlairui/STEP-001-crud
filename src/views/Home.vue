@@ -60,20 +60,24 @@ const flows = {
     create: ["createPost", "refreshPost", "abortPost"],
     update: ["updatePost", "refreshPostItem", "abortUpdate"],
     patch: ["patchPost", "refreshPostItem", "abortUpdate"],
-    delete: ["deletePost", "deleteLocal"]
+    delete: ["deletePost", "deletePostLocal"]
   }
 };
 
 const flowGenerator = flowItems =>
-  function(data) {
-    return () =>
-      flowItems.reduce(
+  function() {
+    // computed
+    return function(data) {
+      // targetFn
+      return flowItems.reduce(
         (result, propName) =>
-          result.then(resolved =>
-            this[propName](resolved === undefined ? data : resolved)
-          ),
+          result.then(resolved => {
+            const endData = resolved === undefined ? data : resolved;
+            return this[propName](endData);
+          }),
         Promise.resolve()
       );
+    };
   };
 
 export default {
