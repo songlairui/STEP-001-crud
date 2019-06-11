@@ -19,16 +19,18 @@
         </ul>
         <div class="update-form" v-if="form.updatePost.id">
           <h4>Update a Post</h4>
-          <input type="text" v-model="form.updatePost.title" placeholder="title">
-          <input type="text" v-model="form.updatePost.author" placeholder="author">
+          <div class="input-item" v-for="(_, key) in form.newPost" :key="key">
+            <input type="text" v-model="form.updatePost[key]" :placeholder="key">
+          </div>
           <button @click="patchPost_flow()">Patch</button>
           <button @click="updatePost_flow()">Update</button>
           <button @click="abortUpdate()">Abort</button>
         </div>
         <div class="create-form">
           <h4>Create a Post</h4>
-          <input type="text" v-model="form.newPost.title" placeholder="title">
-          <input type="text" v-model="form.newPost.author" placeholder="author">
+          <div class="input-item" v-for="(_, key) in form.newPost" :key="key">
+            <input type="text" v-model="form.newPost[key]" :placeholder="key">
+          </div>
           <button @click="createPost_flow()">Create</button>
         </div>
       </div>
@@ -80,6 +82,11 @@ const flowGenerator = flowItems =>
     };
   };
 
+const defaultPostInput = {
+  title: "",
+  author: ""
+};
+
 export default {
   name: "home",
   components: {
@@ -91,15 +98,11 @@ export default {
       comments: [],
       profile: {},
       form: {
-        newPost: {
-          title: "",
-          author: ""
-        },
+        newPost: { ...defaultPostInput },
         updatePost: {
           _origin: {}, // TODO
           id: "",
-          title: "",
-          author: ""
+          ...defaultPostInput
         }
       }
     };
@@ -121,10 +124,7 @@ export default {
       this.profile = await API.profile.retrieve();
     },
     abortPost() {
-      this.form.newPost = {
-        title: "",
-        author: ""
-      };
+      this.form.newPost = { ...defaultPostInput };
     },
     async createPost() {
       const post = { ...this.form.newPost };
@@ -148,8 +148,7 @@ export default {
     abortUpdate() {
       this.form.updatePost = {
         id: "",
-        title: "",
-        author: ""
+        ...defaultPostInput
       };
     },
     async patchPost() {
